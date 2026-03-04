@@ -50,15 +50,18 @@ pip install -e .
 # 2. 安装浏览器内核（Playwright 需要）
 playwright install chromium
 
-# 3. 配置密钥（API key、平台 cookie 等）
+# 3. 登录 Boss直聘（弹出浏览器，手动登录）
+jobclaw login --platform boss
+
+# 4. 配置密钥（API key 等，cookie 已通过 login 自动保存）
 cp .env.example .env
 # 编辑 .env 填入你的配置
 
-# 4. 填写你的求职画像
+# 5. 填写你的求职画像
 cp profiles/example.yaml profiles/me.yaml
 # 编辑 profiles/me.yaml —— 你的技能、期望薪资、偏好城市等
 
-# 5. 开跑！
+# 6. 开跑！
 jobclaw run --profile profiles/me.yaml --query "Python 工程师"
 ```
 
@@ -110,6 +113,12 @@ jobclaw run --profile profiles/me.yaml --query "Python 工程师"
 ## 🔧 CLI 用法
 
 ```bash
+# 交互式登录（弹出浏览器，手动登录后自动保存 cookie）
+jobclaw login --platform boss
+
+# 检查已保存的 cookie 是否有效
+jobclaw login --platform boss --check
+
 # 校验你的 profile 文件格式
 jobclaw validate-profile --profile profiles/example.yaml
 
@@ -125,6 +134,7 @@ jobclaw run --platform all --profile profiles/example.yaml --query "AI 工程师
 ```text
 jobclaw/
   applier/       # 各平台自动投递适配器
+  auth/          # 交互式登录 + cookie 持久化管理
   matcher/       # LLM 匹配打分
   notifier/      # Telegram / Discord 通知
   profile/       # 用户画像加载

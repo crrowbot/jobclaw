@@ -50,11 +50,11 @@ class BossScraper(BaseScraper):
             raise RuntimeError("Scraper not initialized. Use 'async with' context.")
 
         context = await self._browser.new_context()
-        cookie = getattr(self._settings, "boss_cookie", None)
-        if cookie:
-            await context.add_cookies([
-                {"name": "wt2", "value": cookie, "domain": ".zhipin.com", "path": "/"}
-            ])
+        try:
+            from jobclaw.auth.cookie_manager import inject_cookies
+            await inject_cookies(context, "boss", self._settings)
+        except Exception as e:
+            logger.warning("Cookie injection failed (continuing without auth): %s", e)
 
         page = await context.new_page()
         search_url = f"https://www.zhipin.com/web/geek/job?query={query}&city=101280600"

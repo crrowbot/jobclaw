@@ -8,6 +8,12 @@ from pathlib import Path
 import click
 
 from jobclaw.applier.boss import BossApplier
+from jobclaw.auth.browser_login import (
+    PLATFORM_CONFIG,
+    cookies_valid,
+    get_cookie_age_hours,
+    interactive_login,
+)
 from jobclaw.applier.linkedin import LinkedInApplier
 from jobclaw.config import get_settings
 from jobclaw.matcher.llm_matcher import LLMMatcher
@@ -79,6 +85,60 @@ def run_command(
             limit=limit,
         )
     )
+
+
+@main.command("login")
+@click.option(
+    "--platform",
+    type=click.Choice(["boss", "linkedin", "all"]),
+    default="boss",
+    show_default=True,
+    help="Platform to log in to.",
+)
+@click.option("--timeout", type=int, default=5, show_default=True, help="Login timeout in minutes.")
+@click.option("--check", is_flag=True, help="Only check if existing cookies are valid.")
+def login_command(platform: str, timeout: int, check: bool) -> None:
+    """Interactive browser login to save cookies."""
+    platforms = list(PLATFORM_CONFIG.keys()) if platform == "all" else [platform]
+    asyncio.run(_login(platforms=platforms, timeout=timeout, check_only=check))
+
+
+async def _login(platforms: list[str], timeout: int, check_only: bool) -> None:
+    """Internal async login workflow."""
+    for plat in platforms:
+        if check_only:
+            age = get_cookie_age_hours(plat)
+            if age is not None:
+                click.echo(f"[{plat}] Cookie file age: {age:.1f} hours")
+            else:
+                click.echo(f"[{plat}] No saved cookies found.")
+                continue
+
+            click.echo(f"[{plat}] Validating cookies...")
+            valid = await cookies_valid(plat)
+            if valid:
+                click.echo(click.style(f"[{plat}] ✅ Cookies are valid!", fg="green"))
+            else:
+                click.echo(click.style(
+                    f"[{plat}] ❌ Cookies expired or invalid. Run: jobclaw login --platform {plat}",
+                    fg="red",
+                ))
+            continue
+
+        # Interactive login
+        click.echo(f"[{plat}] Opening browser for login (timeout={timeout}m)...")
+        click.echo("Please log in manually. The browser will close automatically on success.")
+        try:
+            key_cookies = await interactive_login(plat, timeout_minutes=timeout)
+            click.echo(click.style(f"[{plat}] ✅ Login successful!", fg="green"))
+            click.echo(f"  Key cookies saved: {', '.join(key_cookies.keys())}")
+            age = get_cookie_age_hours(plat)
+            if age is not None:
+                click.echo(f"  Cookie file age: {age:.1f} hours")
+        except TimeoutError as e:
+            click.echo(click.style(f"[{plat}] ❌ {e}", fg="red"))
+        except Exception as e:
+            click.echo(click.style(f"[{plat}] ❌ Login failed: {e}", fg="red"))
 
 
 async def _scrape(platform: str, query: str, location: str | None, limit: int) -> None:

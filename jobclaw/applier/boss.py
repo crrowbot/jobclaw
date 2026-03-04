@@ -141,11 +141,11 @@ class BossApplier(BaseApplier):
                 "Chrome/125.0.0.0 Safari/537.36"
             ),
         )
-        cookie = self._settings.boss_cookie
-        if cookie:
-            await context.add_cookies([
-                {"name": "wt2", "value": cookie, "domain": ".zhipin.com", "path": "/"},
-            ])
+        try:
+            from jobclaw.auth.cookie_manager import inject_cookies
+            await inject_cookies(context, "boss", self._settings)
+        except Exception as e:
+            logger.warning("Cookie injection failed: %s", e)
 
         page = await context.new_page()
 
