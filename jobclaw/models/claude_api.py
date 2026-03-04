@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from jobclaw.auth import ClaudeToken, get_claude_token
+from jobclaw.auth import ClaudeToken, ensure_valid_token, get_claude_token
 from jobclaw.models.streaming import (
     StreamContext,
     StreamOptions,
@@ -32,7 +32,12 @@ class ClaudeClient:
         elif api_key is not None:
             self._access_token = api_key
         else:
-            # Auto-detect: try OAuth credentials first
+            # Auto-detect: try OAuth credentials first, refresh if needed
+            if not ensure_valid_token():
+                raise RuntimeError(
+                    "Claude OAuth token is expired and refresh failed. "
+                    "Run 'claude' CLI to re-authenticate."
+                )
             self._access_token = get_claude_token().access_token
 
         self.model = model

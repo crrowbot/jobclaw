@@ -72,7 +72,7 @@ class LLMMatcher:
         self._llm = None
 
         if self._backend == "claude-oauth":
-            from jobclaw.auth import get_claude_token
+            from jobclaw.auth import ensure_valid_token, get_claude_token
             from jobclaw.models.claude_api import ClaudeClient
 
             settings = get_settings()
@@ -81,6 +81,11 @@ class LLMMatcher:
                 if settings.claude_credentials_path
                 else None
             )
+            if not ensure_valid_token(creds_path):
+                raise RuntimeError(
+                    "Claude OAuth token is expired and refresh failed. "
+                    "Run 'claude' CLI to re-authenticate."
+                )
             token = get_claude_token(creds_path)
             self._claude_client = ClaudeClient(
                 token=token, model=self._model_name,
