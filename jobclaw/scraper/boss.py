@@ -27,6 +27,11 @@ class BossScraper(BaseScraper):
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(
             headless=getattr(self._settings, "jobclaw_headless", True),
+            args=[
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage',
+                '--no-sandbox',
+            ]
         )
         return self
 
@@ -49,7 +54,29 @@ class BossScraper(BaseScraper):
         if not self._browser:
             raise RuntimeError("Scraper not initialized. Use 'async with' context.")
 
-        context = await self._browser.new_context()
+        context = await self._browser.new_context(
+            viewport={'width': 1920, 'height': 1080},
+            user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+            locale='zh-CN',
+            timezone_id='Asia/Shanghai',
+            extra_http_headers={
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            }
+        )
+        # 移除 webdriver 标记
+        await context.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+            });
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [1, 2, 3, 4, 5]
+            });
+            Object.defineProperty(navigator, 'languages', {
+                get: () => ['zh-CN', 'zh', 'en']
+            });
+            window.chrome = { runtime: {} };
+        """)
         try:
             from jobclaw.auth.cookie_manager import inject_cookies
             await inject_cookies(context, "boss", self._settings)

@@ -91,6 +91,11 @@ class BossApplier(BaseApplier):
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(
             headless=self._settings.jobclaw_headless,
+            args=[
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage',
+                '--no-sandbox',
+            ]
         )
         logger.info("BossApplier browser launched (headless=%s)", self._settings.jobclaw_headless)
         return self
@@ -135,12 +140,34 @@ class BossApplier(BaseApplier):
 
         # --- browser context --------------------------------------------------
         context = await self._browser.new_context(
+            viewport={'width': 1920, 'height': 1080},
             user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/125.0.0.0 Safari/537.36"
+                "Chrome/134.0.0.0 Safari/537.36"
             ),
+            locale='zh-CN',
+            timezone_id='Asia/Shanghai',
+            extra_http_headers={
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            }
         )
+        # 移除 webdriver 标记和其他反检测
+        await context.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+            });
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [1, 2, 3, 4, 5]
+            });
+            Object.defineProperty(navigator, 'languages', {
+                get: () => ['zh-CN', 'zh', 'en']
+            });
+            window.chrome = { runtime: {} };
+            // 模拟正常用户行为
+            window.navigator.permissions.query = (() => Promise.resolve({state: 'granted'}));
+        """)
         try:
             from jobclaw.auth.cookie_manager import inject_cookies
             await inject_cookies(context, "boss", self._settings)
