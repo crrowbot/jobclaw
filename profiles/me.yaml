@@ -1,0 +1,38 @@
+# JobClaw 个人资料示例
+# 复制此文件并修改为你的实际信息
+
+name: 你的名字
+email: your.email@example.com
+
+# 简历链接（可选）
+resume_url: https://your-resume-link.com
+
+# 期望职位（支持多个）
+desired_titles:
+  - 后端开发工程师
+  - Python工程师
+  - 全栈开发工程师
+
+# 期望城市（支持多个）
+desired_cities:
+  - 北京
+  - 上海
+  - 深圳
+  - 广州
+
+# 最低薪资（k/月，可选）
+min_salary: 20
+
+# 打招呼模板
+# 可用变量：{name}, {company}, {title}, {salary}, {experience}
+greeting_template: |
+  你好，我是{name}。我对{title}这个职位很感兴趣，我有{experience}年相关经验，希望能有机会进一步沟通。
+
+# 黑名单公司（可选，不投递这些公司）
+blacklist_companies:
+  - "某诈骗公司"
+
+# 黑名单职位关键词（可选）
+blacklist_keywords:
+  - "销售"
+  - "客服"
