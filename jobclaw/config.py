@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     jobclaw_request_timeout: int = Field(default=30, ge=5, le=300)
 
     openai_api_key: str | None = None
+    openai_base_url: str | None = Field(
+        default=None,
+        description="Custom OpenAI API base URL (for proxies, Azure, or compatible services)",
+    )
     anthropic_api_key: str | None = None
     jobclaw_llm_model: str = Field(default="gpt-4o-mini")
 

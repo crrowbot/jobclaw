@@ -7,7 +7,10 @@ import logging
 from pathlib import Path
 
 from langchain.chat_models import init_chat_model
-from langchain.schema import HumanMessage, SystemMessage
+try:
+    from langchain.schema import HumanMessage, SystemMessage
+except ImportError:
+    from langchain_core.messages import HumanMessage, SystemMessage
 
 from jobclaw.config import get_settings
 from jobclaw.models import Job, Match, Profile
@@ -101,7 +104,22 @@ class LLMMatcher:
             )
             logger.info("Using Anthropic API key (%s)", self._model_name)
         else:
-            self._llm = init_chat_model(self._model_name)
+            # Use ChatOpenAI directly to support custom base_url
+            try:
+                from langchain_openai import ChatOpenAI
+            except ImportError:
+                # Fallback to init_chat_model if langchain-openai not installed
+                self._llm = init_chat_model(self._model_name)
+            else:
+                settings = get_settings()
+                # ChatOpenAI uses 'openai_api_base' parameter for custom endpoint
+                init_kwargs = {
+                    "model": self._model_name,
+                    "api_key": settings.openai_api_key,
+                }
+                if settings.openai_base_url:
+                    init_kwargs["openai_api_base"] = settings.openai_base_url
+                self._llm = ChatOpenAI(**init_kwargs)
             logger.info("Using OpenAI (%s)", self._model_name)
 
     async def match(self, job: Job, profile: Profile) -> Match:
